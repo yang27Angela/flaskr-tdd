@@ -20,6 +20,7 @@ def client():
         db.drop_all()  # teardown
 
 def login(client, username, password):
+    print("login")
     """Login helper function"""
     return client.post(
         "/login",
@@ -109,3 +110,23 @@ def test_search(client):
     rv = client.get("/search/")
     assert b"Test Post One" not in rv.data
     assert b"Test Post Two" not in rv.data
+
+def test_delete_entry(client):
+    """Test the delete entry with login required"""
+
+    rv = client.get('/delete/1')
+    assert rv.status_code == 401
+    assert b'Please log in.' in rv.data
+
+    with client.session_transaction() as session:
+        session['logged_in'] = True
+
+    client.post(
+        '/add',
+        data=dict(title="Test Post to Delete", text="Content for deletion"),
+        follow_redirects=True
+    )
+
+    rv = client.get('/delete/1')
+    assert rv.status_code == 200
+    assert b'Post Deleted' in rv.data
