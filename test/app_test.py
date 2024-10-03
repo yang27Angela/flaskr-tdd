@@ -77,6 +77,35 @@ def test_messages(client):
 
 def test_delete_message(client):
     """Ensure the messages are being deleted"""
-    rv = client.get('/delete/1')
+    rv = client.get("/delete/1")
+    data = json.loads(rv.data)
+    assert data["status"] == 0
+    login(client, app.config["USERNAME"], app.config["PASSWORD"])
+    rv = client.get("/delete/1")
     data = json.loads(rv.data)
     assert data["status"] == 1
+
+def test_search(client):
+    """Ensure search works"""
+    login(client, app.config["USERNAME"], app.config["PASSWORD"])
+    client.post(
+        "/add",
+        data=dict(title="Test Post One", text="This is the first test post."),
+        follow_redirects=True,
+    )
+    client.post(
+        "/add",
+        data=dict(title="Test Post Two", text="This is the second test post."),
+        follow_redirects=True,
+    )
+    rv = client.get("/search/?query=One")
+    assert b"Test Post One" in rv.data
+    assert b"Test Post Two" not in rv.data
+
+    rv = client.get("/search/?query=Test")
+    assert b"Test Post One" in rv.data
+    assert b"Test Post Two" in rv.data
+
+    rv = client.get("/search/")
+    assert b"Test Post One" not in rv.data
+    assert b"Test Post Two" not in rv.data
